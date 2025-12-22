@@ -15,6 +15,8 @@ interface CameraCapabilities {
 export default function QRScanner({ onScan }: QRScannerProps) {
   const [error, setError] = useState('');
   const [scanning, setScanning] = useState(false);
+  const [detected, setDetected] = useState(false);
+  const [detectedCode, setDetectedCode] = useState('');
   const [zoom, setZoom] = useState(1);
   const [flashOn, setFlashOn] = useState(false);
   const [capabilities, setCapabilities] = useState<CameraCapabilities>({});
@@ -33,12 +35,25 @@ export default function QRScanner({ onScan }: QRScannerProps) {
       await scanner.start(
         { facingMode: 'environment' },
         {
-          fps: 10,
+          fps: 15,
           qrbox: { width: 250, height: 250 },
         },
-        (decodedText) => {
+        async (decodedText) => {
+          // Feedback inmediato: vibración y visual
+          setDetected(true);
+          setDetectedCode(decodedText.slice(0, 8));
+
+          // Vibrar en móviles (si está disponible)
+          if (navigator.vibrate) {
+            navigator.vibrate(100);
+          }
+
+          // Detener cámara primero (más rápido)
+          await scanner.stop();
+          scannerRef.current = null;
+
+          // Luego notificar al padre
           onScan(decodedText);
-          stopScanner();
         },
         () => {
           // Ignorar errores de escaneo (frames sin QR)
@@ -129,6 +144,8 @@ export default function QRScanner({ onScan }: QRScannerProps) {
     setFlashOn(false);
     setZoom(1);
     setCapabilities({});
+    setDetected(false);
+    setDetectedCode('');
   };
 
   useEffect(() => {
@@ -139,6 +156,18 @@ export default function QRScanner({ onScan }: QRScannerProps) {
 
   return (
     <div className="space-y-4">
+      {/* Feedback visual cuando se detecta QR */}
+      {detected && (
+        <div className="fixed inset-0 bg-green-500 bg-opacity-90 flex items-center justify-center z-50">
+          <div className="text-center text-white">
+            <div className="text-6xl mb-4">✓</div>
+            <p className="text-2xl font-bold">QR Detectado</p>
+            <p className="text-lg font-mono mt-2">{detectedCode}...</p>
+            <p className="text-sm mt-4 opacity-75">Cargando información...</p>
+          </div>
+        </div>
+      )}
+
       <div
         id="qr-reader"
         ref={containerRef}
