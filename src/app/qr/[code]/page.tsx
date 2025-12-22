@@ -21,6 +21,8 @@ interface QRData {
   code: string;
   roomId: string | null;
   itemName: string | null;
+  quality: number;
+  comment: string | null;
 }
 
 interface Room {
@@ -36,6 +38,8 @@ export default function QRInfoPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoom, setSelectedRoom] = useState('');
   const [itemName, setItemName] = useState('');
+  const [quality, setQuality] = useState(5);
+  const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -60,9 +64,13 @@ export default function QRInfoPage() {
         code: data.code,
         roomId: data.roomId,
         itemName: data.itemName,
+        quality: data.quality ?? 5,
+        comment: data.comment,
       });
       setSelectedRoom(data.roomId || '');
       setItemName(data.itemName || '');
+      setQuality(data.quality ?? 5);
+      setComment(data.comment || '');
 
       // Si tiene habitacion, obtener el nombre
       if (data.roomId) {
@@ -102,6 +110,8 @@ export default function QRInfoPage() {
       await updateDoc(doc(db, 'qrcodes', qrData.id), {
         roomId: selectedRoom || null,
         itemName: itemName.trim() || null,
+        quality: quality,
+        comment: comment.trim() || null,
       });
 
       // Actualizar nombre de habitacion local
@@ -116,6 +126,8 @@ export default function QRInfoPage() {
         ...qrData,
         roomId: selectedRoom || null,
         itemName: itemName.trim() || null,
+        quality: quality,
+        comment: comment.trim() || null,
       });
 
       alert('Guardado correctamente');
@@ -174,6 +186,27 @@ export default function QRInfoPage() {
                 <span className="font-medium">{qrData.itemName}</span>
               </p>
             )}
+            {qrData && (
+              <div className="flex items-center gap-1 mt-1">
+                <span className="text-gray-600 text-sm">Estado:</span>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <span
+                    key={star}
+                    className={`text-sm ${
+                      star <= qrData.quality ? 'text-yellow-400' : 'text-gray-300'
+                    }`}
+                  >
+                    ★
+                  </span>
+                ))}
+              </div>
+            )}
+            {qrData?.comment && (
+              <p className="text-sm mt-1">
+                <span className="text-gray-600">Nota:</span>{' '}
+                <span className="text-gray-700">{qrData.comment}</span>
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -209,6 +242,56 @@ export default function QRInfoPage() {
             onChange={(e) => setItemName(e.target.value)}
             placeholder="ej: Laptop Dell, Silla azul, etc."
             className="w-full px-3 py-2 border rounded"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm text-gray-600 mb-1">
+            Estado / Calidad
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="range"
+              min="1"
+              max="5"
+              value={quality}
+              onChange={(e) => setQuality(parseInt(e.target.value))}
+              className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            />
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setQuality(star)}
+                  className={`text-2xl transition-colors ${
+                    star <= quality ? 'text-yellow-400' : 'text-gray-300'
+                  }`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            {quality === 1 && 'Malo - necesita reemplazo'}
+            {quality === 2 && 'Regular - necesita reparacion'}
+            {quality === 3 && 'Aceptable - funcional'}
+            {quality === 4 && 'Bueno - buen estado'}
+            {quality === 5 && 'Excelente - como nuevo'}
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm text-gray-600 mb-1">
+            Comentario / Notas
+          </label>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Datos adicionales, observaciones, etc."
+            rows={3}
+            className="w-full px-3 py-2 border rounded resize-none"
           />
         </div>
 
