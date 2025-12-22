@@ -57,31 +57,37 @@ export default function Home() {
     };
   }, []);
 
-  // Filtrar items por búsqueda
+  // Normalizar texto (quitar acentos y minúsculas)
+  const normalize = (text: string) => {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  };
+
+  // Filtrar items por búsqueda (solo por nombre)
   const filteredItems = useMemo(() => {
     if (!searchTerm.trim()) return [];
 
-    const term = searchTerm.toLowerCase().trim();
+    const term = normalize(searchTerm.trim());
     return items.filter(
-      (item) =>
-        item.itemName?.toLowerCase().includes(term) ||
-        item.comment?.toLowerCase().includes(term)
+      (item) => item.itemName && normalize(item.itemName).includes(term)
     );
   }, [items, searchTerm]);
 
-  // Agrupar items por nombre similar
+  // Agrupar items por nombre similar (normalizado)
   const groupedItems = useMemo(() => {
-    const groups: { [key: string]: QRItem[] } = {};
+    const groups: { [key: string]: { displayName: string; items: QRItem[] } } = {};
 
     filteredItems.forEach((item) => {
-      const key = item.itemName?.toLowerCase() || 'sin nombre';
+      const key = normalize(item.itemName || 'sin nombre');
       if (!groups[key]) {
-        groups[key] = [];
+        groups[key] = { displayName: item.itemName || 'Sin nombre', items: [] };
       }
-      groups[key].push(item);
+      groups[key].items.push(item);
     });
 
-    return Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
+    return Object.values(groups).sort((a, b) => b.items.length - a.items.length);
   }, [filteredItems]);
 
   // Obtener nombre de habitación
@@ -122,17 +128,17 @@ export default function Home() {
         <div className="bg-white p-4 rounded-lg shadow">
           <h2 className="font-semibold mb-3">Resultados</h2>
 
-          {groupedItems.map(([name, groupItems]) => (
-            <div key={name} className="mb-4 last:mb-0">
+          {groupedItems.map((group) => (
+            <div key={group.displayName} className="mb-4 last:mb-0">
               <div className="flex items-center gap-2 mb-2">
-                <span className="font-medium capitalize">{name}</span>
+                <span className="font-medium">{group.displayName}</span>
                 <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                  {groupItems.length} unidad(es)
+                  {group.items.length} unidad(es)
                 </span>
               </div>
 
               <div className="space-y-2 pl-2 border-l-2 border-gray-200">
-                {groupItems.map((item) => (
+                {group.items.map((item) => (
                   <div
                     key={item.id}
                     className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm"
