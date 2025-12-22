@@ -6,9 +6,10 @@ import QRCode from 'qrcode';
 interface QRGridProps {
   codes: string[]; // Ahora recibe array de 9 códigos
   onReady?: (dataUrl: string) => void;
+  batchNumber?: number; // Número de lote para identificar impresiones
 }
 
-export default function QRGrid({ codes, onReady }: QRGridProps) {
+export default function QRGrid({ codes, onReady, batchNumber }: QRGridProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -86,6 +87,15 @@ export default function QRGrid({ codes, onReady }: QRGridProps) {
         const gap = (size - qrSize * 3) / 4;
         const vGap = (size - cellHeight * 3) / 4;
 
+        // Dibujar número de lote en la esquina superior derecha
+        if (batchNumber) {
+          ctx.fillStyle = '#333';
+          ctx.font = 'bold 28px sans-serif';
+          ctx.textAlign = 'right';
+          ctx.fillText(`#${batchNumber}`, size - 20, 35);
+          ctx.textAlign = 'center'; // Restaurar alineación
+        }
+
         for (let i = 0; i < 9 && i < codes.length; i++) {
           const row = Math.floor(i / 3);
           const col = i % 3;
@@ -117,7 +127,7 @@ export default function QRGrid({ codes, onReady }: QRGridProps) {
     };
 
     generateGrid();
-  }, [codes, onReady]);
+  }, [codes, onReady, batchNumber]);
 
   return (
     <canvas

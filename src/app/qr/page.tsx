@@ -24,6 +24,7 @@ export default function CreateQRPage() {
   const [savedQRs, setSavedQRs] = useState<SavedQR[]>([]);
   const [loadingQRs, setLoadingQRs] = useState(true);
   const [selectedQR, setSelectedQR] = useState<SavedQR | null>(null);
+  const [batchNumber, setBatchNumber] = useState<number>(0);
 
   // Cargar QRs guardados
   useEffect(() => {
@@ -65,6 +66,12 @@ export default function CreateQRPage() {
     setGridDataUrl('');
     setSaved(false);
     setSelectedQR(null);
+
+    // Incrementar número de lote (guardado en localStorage)
+    const currentBatch = parseInt(localStorage.getItem('qrBatchNumber') || '0', 10);
+    const newBatch = currentBatch + 1;
+    localStorage.setItem('qrBatchNumber', newBatch.toString());
+    setBatchNumber(newBatch);
   };
 
   const selectExistingQR = (qr: SavedQR) => {
@@ -161,7 +168,7 @@ export default function CreateQRPage() {
 
             <div className="border-t pt-4">
               <h3 className="font-medium mb-2">Imagen para imprimir (1080x1080)</h3>
-              <QRGrid codes={codes} onReady={setGridDataUrl} />
+              <QRGrid codes={codes} onReady={setGridDataUrl} batchNumber={codes.length > 1 ? batchNumber : undefined} />
               <p className="text-xs text-gray-500 mt-2">
                 {codes.length === 1
                   ? 'Imagen con 1 QR grande para reimprimir'
