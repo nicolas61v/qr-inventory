@@ -15,6 +15,7 @@ import {
 import { db } from '@/lib/firebase';
 import Link from 'next/link';
 import QRGenerator from '@/components/QRGenerator';
+import QRGrid from '@/components/QRGrid';
 
 interface QRData {
   id: string;
@@ -44,6 +45,8 @@ export default function QRInfoPage() {
   const [saving, setSaving] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [roomName, setRoomName] = useState('');
+  const [showReprint, setShowReprint] = useState(false);
+  const [gridDataUrl, setGridDataUrl] = useState('');
 
   // Cargar datos del QR
   useEffect(() => {
@@ -137,6 +140,15 @@ export default function QRInfoPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const downloadGrid = () => {
+    if (!gridDataUrl) return;
+
+    const link = document.createElement('a');
+    link.download = `qr-${code.slice(0, 8)}.png`;
+    link.href = gridDataUrl;
+    link.click();
   };
 
   if (loading) {
@@ -302,6 +314,41 @@ export default function QRInfoPage() {
         >
           {saving ? 'Guardando...' : 'Guardar Cambios'}
         </button>
+      </div>
+
+      {/* Sección de Reimpresión */}
+      <div className="bg-white p-4 rounded-lg shadow space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">Reimprimir QR</h2>
+          <button
+            onClick={() => setShowReprint(!showReprint)}
+            className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+          >
+            {showReprint ? 'Ocultar' : 'Mostrar'}
+          </button>
+        </div>
+
+        {showReprint && (
+          <div className="space-y-4">
+            <div className="border-t pt-4">
+              <h3 className="font-medium mb-2 text-sm text-gray-600">
+                Imagen para imprimir (1080x1080)
+              </h3>
+              <QRGrid codes={[code]} onReady={setGridDataUrl} />
+              <p className="text-xs text-gray-500 mt-2">
+                Imagen con 1 QR para reimprimir
+              </p>
+            </div>
+
+            <button
+              onClick={downloadGrid}
+              disabled={!gridDataUrl}
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50"
+            >
+              Descargar Imagen
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
