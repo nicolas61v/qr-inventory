@@ -45,6 +45,13 @@ export default function RoomDetailPage() {
   const [linkingItemId, setLinkingItemId] = useState<string | null>(null);
   const [linkError, setLinkError] = useState('');
 
+  // Edit item state (for items without QR)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editItemName, setEditItemName] = useState('');
+  const [editQuality, setEditQuality] = useState(5);
+  const [editComment, setEditComment] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+
   useEffect(() => {
     const fetchRoom = async () => {
       const roomDoc = await getDoc(doc(db, 'rooms', roomId));
@@ -97,6 +104,32 @@ export default function RoomDetailPage() {
       alert('Error al agregar item');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const startEditing = (item: QRItem) => {
+    setEditingItemId(item.id);
+    setEditItemName(item.itemName || '');
+    setEditQuality(item.quality);
+    setEditComment(item.comment || '');
+  };
+
+  const handleEditSave = async () => {
+    if (!editingItemId || !editItemName.trim()) return;
+
+    setEditSaving(true);
+    try {
+      await updateDoc(doc(db, 'qrcodes', editingItemId), {
+        itemName: editItemName.trim(),
+        quality: editQuality,
+        comment: editComment.trim() || null,
+      });
+      setEditingItemId(null);
+    } catch (error) {
+      console.error('Error editando item:', error);
+      alert('Error al guardar');
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -257,6 +290,92 @@ export default function RoomDetailPage() {
         </div>
       )}
 
+      {/* Edit item modal (for items without QR) */}
+      {editingItemId && (
+        <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold">Editar item</h2>
+              <button
+                onClick={() => setEditingItemId(null)}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Nombre del item
+              </label>
+              <input
+                type="text"
+                value={editItemName}
+                onChange={(e) => setEditItemName(e.target.value)}
+                className="w-full px-3 py-2 border rounded"
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Estado / Calidad
+              </label>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setEditQuality(star)}
+                    className={`text-2xl transition-colors ${
+                      star <= editQuality ? 'text-yellow-400' : 'text-gray-300'
+                    }`}
+                  >
+                    ★
+                  </button>
+                ))}
+                <span className="text-xs text-gray-500 ml-2">
+                  {editQuality === 1 && 'Malo'}
+                  {editQuality === 2 && 'Regular'}
+                  {editQuality === 3 && 'Aceptable'}
+                  {editQuality === 4 && 'Bueno'}
+                  {editQuality === 5 && 'Excelente'}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Comentario (opcional)
+              </label>
+              <textarea
+                value={editComment}
+                onChange={(e) => setEditComment(e.target.value)}
+                placeholder="Notas adicionales..."
+                rows={2}
+                className="w-full px-3 py-2 border rounded resize-none"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleEditSave}
+                disabled={editSaving || !editItemName.trim()}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+              >
+                {editSaving ? 'Guardando...' : 'Guardar'}
+              </button>
+              <button
+                onClick={() => setEditingItemId(null)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Error message */}
       {linkError && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
@@ -357,16 +476,20 @@ export default function RoomDetailPage() {
                       Editar
                     </Link>
                   ) : (
-                    <Link
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setLinkingItemId(item.id);
-                      }}
-                      className="text-blue-600 hover:underline text-sm shrink-0"
-                    >
-                      Vincular
-                    </Link>
+                    <div className="flex flex-col gap-1 shrink-0">
+                      <button
+                        onClick={() => startEditing(item)}
+                        className="text-blue-600 hover:underline text-sm"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => setLinkingItemId(item.id)}
+                        className="text-gray-500 hover:underline text-xs"
+                      >
+                        Vincular QR
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
